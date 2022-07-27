@@ -1,90 +1,68 @@
 import numpy as np
 import cv2
 
-def kmeans_algo(image, clusters=8, rounds=1):
-    h, w = image.shape[:2]
-    samples = np.zeros([h*w,3], dtype=np.float32)
-    count = 0
+def kmeans_quant(image,k):
+    i = np.float32(image).reshape(-1,3)
+    condition = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER,20,1.0)
+    ret,label,center = cv2.kmeans(i, k , None, condition,10,cv2.KMEANS_RANDOM_CENTERS)
+    center = np.uint8(center)
+    final_img = center[label.flatten()]
+    final_img = final_img.reshape(image.shape)
+    return final_img
 
-    for x in range(h):
-        for y in range(w):
-            samples[count] = image[x][y]
-            count += 1
-
-    compactness, labels, centers = cv2.kmeans(samples,
-            clusters,
-            None,
-            (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10000, 0.0001),
-            rounds,
-            cv2.KMEANS_RANDOM_CENTERS)
-
-    centers = np.uint8(centers)
-    res = centers[labels.flatten()]
-    return res.reshape((image.shape))
-
-def swap(image_input, swap_image_input, id):
-    image = image_input.copy()
-    swap_image = swap_image_input.copy()
-    dest = image_input.copy()
-    kmeans = kmeans_algo(image, clusters=2)
-    if id == 0:
-        kmeans = kmeans_algo(image, clusters=3)
-
-    gray = cv2.cvtColor(kmeans, cv2.COLOR_BGR2GRAY)
-    (thresh, blackAndWhiteImage) = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-    if id == 0:
-        blackAndWhiteImage = cv2.bitwise_not(blackAndWhiteImage)
-
-    # Iteriamo su ogni pixel partendo da ogni angolo dell'immagine e ci fermiamo nel momento in cui otteniamo il primo pixel bianco
-    # Alla fine dei cicli for otterremo i 4 angoli del pannello pubblicitario
-    dimensions = blackAndWhiteImage.shape
-    row = dimensions[0] - 1
-    col = dimensions[1] - 1
-    top_left = (0,0)
-    for i in range (0, row):
-        if blackAndWhiteImage[i,0] == 255:
-            top_left = (i,0)
+def find_top_left_c(quant, rows):
+    top_left = (0, 0)
+    for i in range(0, rows-1):
+        top_left = (i, 0)
+        if (quant[i, 0, :] == [255, 255, 255]).all() and (quant[i+1, 0, :] == [255, 255, 255]).all():
             break
-    bottom_left = (row,0)
-    for i in range (row, 0, -1):
-        if blackAndWhiteImage[i,0] == 255:
-            bottom_left = (i,0)
-            break
-    top_right = (0,col)
-    for i in range (0, row):
-        if blackAndWhiteImage[i,col] == 255:
-            top_right = (i,col)
-            break
-    bottom_right = (row,col)
-    for i in range (row, 0, -1):
-        if blackAndWhiteImage[i,col] == 255:
-            bottom_right = (i,col)
-            break
-    blackAndWhiteImage[blackAndWhiteImage == 255] = 0
-    blackAndWhiteImage[top_left] = 255
-    blackAndWhiteImage[bottom_left] = 255
-    blackAndWhiteImage[top_right] = 255
-    blackAndWhiteImage[bottom_right] = 255
+    return top_left
 
-    # Omografia e sostituzione
-    size = swap_image.shape
-    pts_source = np.array(
-                        [
-                        [0,0],
-                        [size[1] - 1, 0],
-                        [size[1] - 1, size[0] -1],
-                        [0, size[0] - 1 ]
-                        ],dtype=float
-                        )
-    pts_dst = np.array([[top_left[1], top_left[0]], [top_right[1], top_right[0]], [bottom_right[1], bottom_right[0]], [bottom_left[1], bottom_left[0]]])
-    h, status = cv2.findHomography(pts_source, pts_dst)
-    temp = cv2.warpPerspective(swap_image, h, (image.shape[1], image.shape[0]))
-    # ~
-    cv2.fillConvexPoly(dest, pts_dst.astype(int), 0, 16)
-    return dest + temp
+def find_bottom_left_c(quant, rows):
+    bottom_left = (rows, 0)
+    for i in range(rows, 0, -1):
+        bottom_left = (i, 0)
+        if (quant[i, 0, :] == [255, 255, 255]).all() and (quant[i-1, 0, :] == [255, 255, 255]).all():
+            break
+    return bottom_left
+
+def find_top_right_c(quant, rows, columns):
+    top_right = (0, columns)
+    for i in range(0, rows-1):
+        top_right = (i, columns)
+        if (quant[i, columns, :] == [255, 255, 255]).all() and (quant[i+1, columns, :] == [255, 255, 255]).all():
+            break
+    return top_right
+
+def find_bottom_right_c(quant, rows, columns):
+    bottom_right = (rows, columns)
+    for i in range(rows, 0, -1):
+        bottom_right = (i, columns)
+        if (quant[i, columns, :] == [255, 255, 255]).all() and (quant[i-1, columns, :] == [255, 255, 255]).all():
+            break
+    return bottom_right
+
+def swap(quant, swap_image, dest):
+    rows = quant.shape[0] - 1
+    columns = quant.shape[1] - 1
+
+    top_left = find_top_left_c(quant, rows)
+
+    bottom_left = find_bottom_left_c(quant, rows)
+
+    top_right = find_top_right_c(quant, rows, columns)
+
+    bottom_right = find_bottom_right_c(quant, rows, columns)
+
+    pts_swap = np.array([[0, 0], [swap_image.shape[1]-1, 0], [swap_image.shape[1]-1, swap_image.shape[0]-1],[0, swap_image.shape[0]-1]])
+    pts_bbox = np.array([top_left[::-1], top_right[::-1], bottom_right[::-1], bottom_left[::-1]])
+    h, status = cv2.findHomography(pts_swap, pts_bbox)
+    im_out = cv2.warpPerspective(swap_image, h, (dest.shape[1],dest.shape[0]))
+    cv2.fillConvexPoly(dest, pts_bbox.astype(int), 0, 16)
+    return im_out + dest
 
 
-def detect_and_swap(darknet, layer_names, image, swap_adidas, swap_fedex, swap_ps3, confidence, threshold):
+def detect_and_swap(darknet, layer_names, image, swap_adidas, swap_fedex, swap_ps3, confidence_threshold):
     boxes = []
     confidences = []
     classIDs = []
@@ -101,7 +79,7 @@ def detect_and_swap(darknet, layer_names, image, swap_adidas, swap_fedex, swap_p
             conf = scores[classID]
             
             # Considerare solo le previsioni > soglia di confidenza
-            if conf > confidence:
+            if conf > confidence_threshold:
                 box = detection[0:4] * np.array([width, height, width, height])
                 centerX, centerY, w, h = box.astype('int')
 
@@ -113,67 +91,85 @@ def detect_and_swap(darknet, layer_names, image, swap_adidas, swap_fedex, swap_p
                 confidences.append(float(conf))
                 classIDs.append(classID)
     
-    idxs = cv2.dnn.NMSBoxes(boxes, confidences, confidence, threshold)
-
+    idxs = cv2.dnn.NMSBoxes(boxes, confidences, confidence_threshold, confidence_threshold)
+    black_and_white = image.copy()
+    black_and_white = kmeans_quant(black_and_white,4)
+    ret,black_and_white = cv2.threshold(black_and_white,127,255,cv2.THRESH_BINARY)
+    # black_and_white = cv2.bitwise_not(black_and_white)
     # Iteriamo sulle bounding box
     if len(idxs) > 0:
         for i in idxs.flatten():
             # Estrazione delle coordinate dei bounding box
             x, y = boxes[i][0], boxes[i][1]
             w, h = boxes[i][2], boxes[i][3]
+            if x < 0 or y < 0:
+                continue
+            b_box_b = black_and_white[y:y+h, x:x+w]
             b_box = image[y:y+h, x:x+w]
             swap_image = swap_adidas.copy()
             if classIDs[i] == 1:
                 swap_image = swap_fedex.copy()
             elif classIDs[i] == 2:
                 swap_image = swap_ps3.copy()
-            result = swap(b_box, swap_image, classIDs[i])
+            result = swap(b_box_b.copy(), swap_image.copy(), b_box.copy())
             image[y:y+h, x:x+w] = result
             
     return image
 
+if __name__ == '__main__':
+    image_path = '../frame8416.jpg'
+    weights_path = '../darknet/pesi/yolov4-tiny/yolov4-tiny.weights'
+    config_path = '../darknet/cfg/yolov4-tiny.cfg'
+    names_path = '../darknet/data/yolo.names'
+    swap_adidas_path = "lete.jpg"
+    swap_fedex_path = "visa.jpg"
+    swap_ps3_path = "nike.jpg"
+    video_path = '../rigore1.mp4'
 
-image_path = "inserire path dell'immagine"
-weights_path = 'inserire path dei pesi'
-config_path = 'inserire path del file .cfg'
-names_path = 'inserire path del file .names'
-swap_adidas_path = "inserire path dell'immagine di swap adidas"
-swap_fedex_path = "inserire path dell'immagine di swap fedex"
-swap_ps3_path = "inserire path dell'immagine di swap ps3"
-video_path = 'inserire path del video'
+    confidence_threshold = 0.9
 
-confidence = 0.6
-threshold = 0.6
+    labels = open(names_path).read().strip().split('\n')
 
-labels = open(names_path).read().strip().split('\n')
+    darknet = cv2.dnn.readNetFromDarknet(config_path, weights_path)
 
-darknet = cv2.dnn.readNetFromDarknet(config_path, weights_path)
+    layer_names = darknet.getLayerNames()
+    layer_names = [layer_names[i - 1] for i in darknet.getUnconnectedOutLayers()]
 
-layer_names = darknet.getLayerNames()
-layer_names = [layer_names[i - 1] for i in darknet.getUnconnectedOutLayers()]
+    image = cv2.imread(image_path)
+    swap_adidas = cv2.imread(swap_adidas_path)
+    swap_fedex = cv2.imread(swap_fedex_path)
+    swap_ps3 = cv2.imread(swap_ps3_path)
 
-image = cv2.imread(image_path)
-swap_adidas = cv2.imread(swap_adidas_path)
-swap_fedex = cv2.imread(swap_fedex_path)
-swap_ps3 = cv2.imread(swap_ps3_path)
+    on_video = False # impostare a true per effettuare la sostituzione sul video
 
-on_video = False # impostare a true per effettuare la sostituzione sul video
+    if not on_video:
+        image = detect_and_swap(darknet, layer_names, image, swap_adidas, swap_fedex, swap_ps3, confidence_threshold)
 
-if not on_video:
-    image = detect_and_swap(darknet, layer_names, image, swap_adidas, swap_fedex, swap_ps3, confidence, threshold)
-
-    cv2.imshow('detection', image)
-    cv2.imwrite('result.jpg', image)
-    cv2.waitKey(0)
-else:
-    cv2.startWindowThread()
-    cap = cv2.VideoCapture(video_path)
-    while(True):
-        ret, frame = cap.read()
-        image = detect_and_swap(darknet, layer_names, frame, swap_adidas, swap_fedex, swap_ps3, confidence, threshold)
-        cv2.imshow('frame',image)
-        if cv2.waitKey(1) & 0xFF == ord('e'):
-            # interrompe il loop se l'utente preme "e"
-            break
-    cap.release()
-    cv2.destroyAllWindows()
+        cv2.imshow('detection', image)
+        cv2.imwrite('result.jpg', image)
+        cv2.waitKey(0)
+    else:
+        cv2.startWindowThread()
+        video = cv2.VideoCapture(video_path)
+        frame_total = video.get(cv2.CAP_PROP_FRAME_COUNT)
+        frame_width = int(video.get(3))
+        frame_height = int(video.get(4))
+   
+        size = (frame_width, frame_height)
+        result = cv2.VideoWriter('result.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 25, size)
+        count = 0
+        while(True):
+            ret, frame = video.read()
+            if ret:
+                count += 1
+                image = detect_and_swap(darknet, layer_names, frame, swap_adidas, swap_fedex, swap_ps3, confidence_threshold)
+                result.write(image)
+                print(str(int((count/frame_total)*100))+'%')
+                if count == frame_total:
+                    'Video salvato!'
+                if cv2.waitKey(1) & 0xFF == ord('e'): # interrompe il loop se l'utente preme "e"
+                    break
+            else:
+                break
+        video.release()
+        cv2.destroyAllWindows()
