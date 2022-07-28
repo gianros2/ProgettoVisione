@@ -1,4 +1,5 @@
 import numpy as np
+from PIL import Image, ImageEnhance
 import cv2
 
 def kmeans_quant(image,k):
@@ -152,6 +153,25 @@ if __name__ == '__main__':
     swap_adidas = cv2.imread(swap_adidas_path)
     swap_fedex = cv2.imread(swap_fedex_path)
     swap_ps3 = cv2.imread(swap_ps3_path)
+
+    #FILTRI
+    #nike
+    swap_adidas = cv2.convertScaleAbs(swap_adidas, alpha = 1, beta = 35) 
+    #dhl
+    swap_fedex = cv2.convertScaleAbs(swap_fedex, alpha = 1, beta = 25) 
+    #Image
+    swap_adidas = Image.fromarray(swap_adidas)
+    swap_fedex = Image.fromarray(swap_fedex)
+    # Contrasto
+    enhancer = ImageEnhance.Contrast(swap_adidas)
+    enhancer1 = ImageEnhance.Contrast(swap_fedex)
+    #dhl
+    swap_adidas = enhancer.enhance(1.25)
+    #nike
+    swap_fedex = enhancer1.enhance(0.7)
+    #Opencv
+    swap_adidas = np.asarray(swap_adidas)
+    swap_fedex = np.asarray(swap_fedex)
 
     on_video = True # impostare a true per effettuare la sostituzione sul video
 
