@@ -1,0 +1,1 @@
+Il file .weights è stato diviso in parti .rar dato che github ha un limite di upload pari a 50mb

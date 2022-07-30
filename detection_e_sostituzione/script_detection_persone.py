@@ -3,7 +3,7 @@ import numpy as np
 
 
 def detect_people(image, confidence_threshold):
-    weights_path = '../darknet/cfg/people-detection/yolo-people-detection.weights'
+    weights_path = '../darknet/pesi/people-detection/yolo-people-detection.weights'
     config_path = '../darknet/cfg/people-detection/yolo-people-detection.cfg'
 
     darknet = cv2.dnn.readNetFromDarknet(config_path, weights_path)
@@ -48,6 +48,5 @@ def detect_people(image, confidence_threshold):
                 if x < 0 or y < 0:
                     continue
                 coords.append((x, y, w, h))
-                cv2.rectangle(image, (x, y), (x + w, y + h), (0,255,0), 1)
 
     return coords

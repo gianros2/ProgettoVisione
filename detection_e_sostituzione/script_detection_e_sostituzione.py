@@ -165,14 +165,13 @@ def detect_and_swap(darknet, layer_names, image, swap_fedex, confidence_threshol
             swap_image = swap_fedex
             result = swap(b_box_b, swap_image, b_box)
             image[y:y+h, x:x+w] = result
-            cv2.rectangle(image, (x, y), (x + w, y + h), (0,255,0), 1)
             
     return image
 
 if __name__ == '__main__':
     image_path = 'fedex/test2832908.jpg'
     weights_path = '../darknet/pesi/yolov4-tiny/yolov4-tiny.weights'
-    config_path = '../darknet/cfg/yolov4-tiny.cfg'
+    config_path = '../darknet/cfg/yolov4-tiny/yolov4-tiny.cfg'
     # names_path = '../darknet/data/yolo.names'
     swap_adidas_path = "lete.jpg"
     swap_fedex_path = "dhl.jpg"
