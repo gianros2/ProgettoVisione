@@ -9,29 +9,25 @@ def count(path, frames, label):
         with open(file, 'r') as f:
 	        for line in f:
                     label += 1
+    print(path)
     os.chdir('../../..')
     return frames, label 
 
-folder = '../dataset'
+os.chdir('../')
+folder = 'dataset'
 
 subfolders = [ f.name for f in os.scandir(folder) if f.is_dir() ]
 
 Adidas_cv_frames = 0
 Adidas_cv_label = 0
-Adidas_test_frames = 0
-Adidas_test_label = 0
 Adidas_train_frames = 0
 Adidas_train_label = 0
 Fedex_cv_frames = 0
 Fedex_cv_label = 0
-Fedex_test_frames = 0
-Fedex_test_label = 0
 Fedex_train_frames = 0
 Fedex_train_label = 0
 PS3_cv_frames = 0
 PS3_cv_label = 0
-PS3_test_frames = 0
-PS3_test_label = 0
 PS3_train_frames = 0
 PS3_train_label = 0
 
@@ -69,4 +65,4 @@ df = pd.DataFrame(data, columns=cols,index=('#Immagini','#Labels'))
 df = df.transpose()
 print(df)
 
-df.to_excel("../dataset/Dataset.xlsx", sheet_name = 'Data')
+df.to_excel("dataset/Dataset.xlsx", sheet_name = 'Data')
