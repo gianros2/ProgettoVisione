@@ -1,8 +1,9 @@
 # ProgettoVisione
 
 ## Problema
-Il seguente progetto si basa sull'applicazione di algoritmi e concetti legati alla Computer Vision, per affrontare e risolvere il problema della detection dei loghi presenti sui pannelli pubblicitari relativi alle partite di calcio e sostituirli con quelli di altri brand.<br>
-In particolare identifica i loghi Adidas, Fedex e PS3, sostituendoli con quelli di DHL.        
+Identificazione e sostituzione di brand utilizzati sui pannelli pubblicitari nel contesto delle partite di calcio.<br>
+Il progetto prevede l'applicazione di algoritmi e concetti legati alla Computer Vision, i quali sono stati sviluppati, nello specifico,<br> 
+per la detection dei loghi Adidas, Fedex e Ps3 con successiva sostituzione di questi ultimi con il logo DHL.        
 
 [![problem.gif](https://i.postimg.cc/8PdRtfB8/problem.gif)](https://postimg.cc/D8Z4zZM5)
 
@@ -54,12 +55,10 @@ https://user-images.githubusercontent.com/105881522/182245394-858e02d8-1f2a-4048
 Clonare la repository del progetto mediante il comando:
 - **git clone** https://github.com/gianros2/ProgettoVisione
 
-Estrarre i pesi nella directory ProgettoVisione/tree/main/darknet/pesi/people-detection partendo dal file **yolo-people-detection.part1.rar**
+Estrarre i pesi nella directory darknet/pesi/people-detection partendo dal file **yolo-people-detection.part1.rar**
 
 Posizionarsi nella directory ProgettoVisione/detection e sostituzione ed eseguire il comando seguente:
 - **pip install -r requirements.txt** (per installare tutte le lib necessarie al funzionamento del progetto)
-
-Posizionarsi nella directory ProgettoVisione/tree/main/detection_e_sostituzione ed avviare lo script **script_detection_e_sostituzione.py**
 
 [IMAGE]<br>
 Impostare la variabile **image_path** al percorso contentenente l'immagine da elaborare e la variabile **on_video** su **False**.
@@ -67,5 +66,8 @@ Impostare la variabile **image_path** al percorso contentenente l'immagine da el
 [VIDEO]<br>
 Impostare la variabile **video_path** al percorso contentenente il video da elaborare e la variabile **on_video** su **True**.
 
-Impostare la variabile **confidence_threshold** sulla soglia di detection dei loghi voluta.
+Impostare la variabile **confidence_threshold** sulla soglia di detection dei loghi voluta.<br>
 Impostare la variabile **people_confidence** sulla soglia di detection dei giocatori voluta.
+
+Avviare lo script **script_detection_e_sostituzione.py** tramite un IDE o da linea di comando eseguendo:
+- **python script_detection_e_sostituzione.py**
